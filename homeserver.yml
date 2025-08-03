@@ -1,0 +1,23 @@
+server_name: "chatapp.xxx.sy"
+pid_file: /data/homeserver.pid
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+        compress: false
+          #database:
+          #name: sqlite3
+          #args:
+          #database: /data/homeserver.db
+database:
+  name: psycopg2
+  args:
+    user: synapse
+    password: synapse
+    database: synapsedb
+    host: postgres-matrix # The service name defined in your docker-compose file
+    cp_min: 5
+    cp_max: 10
