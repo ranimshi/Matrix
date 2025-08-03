@@ -1,0 +1,89 @@
+#we need to genertate the conf files for synapse before up the container then up the container with its own compose file
+#docker-compose run --rm synapse generate
+#then we have to generate the config and registration files for whatsapp container then up the compose that contain all the services
+#docker run --rm  -v /opt/mautrix-whatsapp:/data:z dock.mau.dev/mautrix/whatsapp
+version: "3.7"
+services:
+   synapse:
+     #image: matrix-no-root:latest
+     image: matrixdotorg/synapse:latest
+     container_name: "synapse"
+     volumes:
+       - "/opt/matrix-volume/data/synapse:/data"
+       # - "/opt/mautrix-whatsapp/registration.yaml:/data/registration.yaml:ro"
+         #- "/opt/mautrix-whatsapp/config.yaml:/data/config.yaml"
+         # - "/opt/matrix-volume/data/synapse/registration.yaml:/data/registration.yaml"
+     environment:
+       VIRTUAL_HOST: "chatapp.xxx.sy"
+       VIRTUAL_PORT: 8008
+       SYNAPSE_SERVER_NAME: "chatapp.xxx.sy"
+       SYNAPSE_REPORT_STATS: "yes"
+       https_proxy: "x.x.x.x:3128"
+
+     ports:
+       - "8008:8008/tcp"
+     networks:
+       - syn_network
+     logging:
+      driver: syslog
+      options:
+        syslog-address: "udp://x.x.x.x:514"
+        tag: "synapse"
+
+   postgres-matrix:
+     image: post-noroot
+     container_name: "postgres-matrix"
+     environment:
+        - POSTGRES_USER=synapse
+        - POSTGRES_PASSWORD=synapse
+        - POSTGRES_DB=synapsedb
+        - allow_unsafe_locale= "true"
+        - PGDATA=/var/lib/postgresql/data/
+        - POSTGRES_INITDB_ARGS=--encoding='UTF8' --lc-collate='C' --lc-ctype='C'
+     volumes:
+        - /opt/post-matrix/pgdata:/var/lib/postgresql/data/:rw
+     networks:
+        - syn_network
+
+
+   postgres-whats:
+     image: post-noroot
+     container_name: "postgres-whats"
+     environment:
+        - POSTGRES_USER=whatsapp
+        - POSTGRES_PASSWORD=whatsapp
+        - POSTGRES_DB=whatsdb
+        - allow_unsafe_locale= "true"
+        - PGDATA=/var/lib/postgresql/data/
+        - POSTGRES_INITDB_ARGS=--encoding='UTF8' --lc-collate='C' --lc-ctype='C'
+     volumes:
+        - /opt/post-whatsapp/pgdata:/var/lib/postgresql/data/:rw
+     networks:
+        - syn_network
+
+   mautrix-whatsapp:
+     container_name: mautrix-whatsapp
+     image: dock.mau.dev/mautrix/whatsapp:v0.12.1
+       #image: dock.mau.dev/mautrix/whatsapp:v0.10.9
+       # image: mautrix-whatsapp:backup
+     restart: unless-stopped
+     volumes:
+       - "/opt/mautrix-whatsapp:/data"
+     environment:
+       https_proxy: "x.x.x.x:3128"
+     networks:
+       - syn_network
+     depends_on:
+       - synapse
+     logging:
+      driver: syslog
+      options:
+        syslog-address: "udp://x.x.x.x:514"
+        tag: "bridge_whats"
+
+networks:
+        syn_network:
+          ipam:
+            driver: default
+            config:
+              - subnet: 192.168.1.0/24
