@@ -2,6 +2,7 @@
 #docker-compose run --rm synapse generate
 #then we have to generate the config and registration files for whatsapp container then up the compose that contain all the services
 #docker run --rm  -v /opt/mautrix-whatsapp:/data:z dock.mau.dev/mautrix/whatsapp
+#copy the regitration file into homeserver path and name it registration-whatsapp.yaml
 version: "3.7"
 services:
    synapse:
